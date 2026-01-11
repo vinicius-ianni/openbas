@@ -12,8 +12,16 @@ public class V4_58__Update_catalog_connector_configuration_type extends BaseJava
     try (Statement select = context.getConnection().createStatement()) {
       select.execute(
           """
-          CREATE TYPE connector_configuration_type AS ENUM ('ARRAY', 'BOOLEAN', 'INTEGER', 'OBJECT', 'STRING');
-          CREATE TYPE connector_configuration_format AS ENUM ('DATE', 'DATETIME', 'DURATION', 'EMAIL', 'PASSWORD', 'URI');
+          DO $$
+          BEGIN
+              IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'connector_configuration_type') THEN
+                  CREATE TYPE connector_configuration_type AS ENUM ('ARRAY', 'BOOLEAN', 'INTEGER', 'OBJECT', 'STRING');
+              END IF;
+
+              IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'connector_configuration_format') THEN
+                  CREATE TYPE connector_configuration_format AS ENUM ('DATE', 'DATETIME', 'DURATION', 'EMAIL', 'PASSWORD', 'URI');
+              END IF;
+          END $$;
 
           ALTER TABLE catalog_connectors_configuration
           DROP COLUMN IF EXISTS connector_configuration_type,
@@ -23,14 +31,23 @@ public class V4_58__Update_catalog_connector_configuration_type extends BaseJava
       select.execute(
           """
           ALTER TABLE catalog_connectors_configuration
-          ADD COLUMN connector_configuration_type connector_configuration_type,
-          ADD COLUMN connector_configuration_format connector_configuration_format
+          ADD COLUMN IF NOT EXISTS connector_configuration_type connector_configuration_type,
+          ADD COLUMN IF NOT EXISTS connector_configuration_format connector_configuration_format
         """);
 
       select.execute(
           """
-          ALTER TABLE connector_instance_logs
-          RENAME COLUMN connector_configuration_created_at TO connector_instance_log_created_at;
+          DO $$
+          BEGIN
+              IF EXISTS (
+                  SELECT 1 FROM information_schema.columns
+                  WHERE table_name = 'connector_instance_logs'
+                  AND column_name = 'connector_configuration_created_at'
+              ) THEN
+                  ALTER TABLE connector_instance_logs
+                  RENAME COLUMN connector_configuration_created_at TO connector_instance_log_created_at;
+              END IF;
+          END $$;
         """);
     }
   }

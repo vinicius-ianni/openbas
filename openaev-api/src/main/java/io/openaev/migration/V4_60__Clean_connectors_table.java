@@ -13,11 +13,11 @@ public class V4_60__Clean_connectors_table extends BaseJavaMigration {
       select.execute(
           """
                     ALTER TABLE injectors
-                    DROP COLUMN injector_connector_instance_id ;
+                    DROP COLUMN IF EXISTS injector_connector_instance_id;
                     ALTER TABLE collectors
-                    DROP COLUMN collector_connector_instance_id ;
+                    DROP COLUMN IF EXISTS collector_connector_instance_id;
                     ALTER TABLE executors
-                    DROP COLUMN executor_connector_instance_id ;
+                    DROP COLUMN IF EXISTS executor_connector_instance_id;
                   """);
     }
   }
