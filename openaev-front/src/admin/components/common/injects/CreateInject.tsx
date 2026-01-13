@@ -223,7 +223,6 @@ const CreateInject: FunctionComponent<Props> = ({
     deSelectedElements,
     selectAll,
     handleClearSelectedElements,
-    handleToggleSelectAll,
     onToggleEntity,
     numberOfSelectedElements,
   } = useEntityToggle<InjectorContractFullOutput>('injector_contract', contracts, queryableHelpers.paginationHelpers.getTotalElements());
@@ -362,11 +361,15 @@ const CreateInject: FunctionComponent<Props> = ({
         gridTemplateColumns: selectedContract ? `60% calc(40% - ${theme.spacing(2)})` : '1fr',
         gap: theme.spacing(2),
         overflow: 'hidden',
-        padding: `${theme.spacing(2.5)} 0 ${theme.spacing(2.5)} ${theme.spacing(2.5)}`,
+        padding: `${theme.spacing(2)} 0 ${theme.spacing(2.5)} ${theme.spacing(2.5)}`,
       }}
     >
       <>
-        <div style={{ overflowY: 'auto' }}>
+        <div style={{
+          overflowY: 'auto',
+          paddingTop: theme.spacing(0.5),
+        }}
+        >
           <PaginationComponentV2
             fetch={searchInjectorContracts}
             searchPaginationInput={searchPaginationInput}
@@ -374,7 +377,6 @@ const CreateInject: FunctionComponent<Props> = ({
             entityPrefix="injector_contract"
             availableFilterNames={availableFilterNames}
             queryableHelpers={queryableHelpers}
-            disablePagination
             attackPatterns={attackPatterns}
           />
           <List>
@@ -384,18 +386,7 @@ const CreateInject: FunctionComponent<Props> = ({
               style={{ paddingTop: 0 }}
               secondaryAction={<>&nbsp;</>}
             >
-              {!isAtomic && (
-                <ListItemIcon style={{ minWidth: 40 }}>
-                  <Checkbox
-                    edge="start"
-                    disableRipple
-                    checked={selectAll}
-                    onChange={handleToggleSelectAll}
-                    disabled={typeof handleToggleSelectAll !== 'function'}
-                  />
-                </ListItemIcon>
-              )}
-              <ListItemIcon style={{ minWidth: 56 }} />
+              <ListItemIcon style={{ minWidth: 90 }} />
               <ListItemText
                 primary={(
                   <SortHeadersComponentV2
