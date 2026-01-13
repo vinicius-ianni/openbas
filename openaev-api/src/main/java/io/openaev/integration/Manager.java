@@ -64,8 +64,9 @@ public class Manager {
     return candidates.getFirst();
   }
 
+  /** Not thread-safe */
   @Transactional
-  public void monitorIntegrations() {
+  void monitorIntegrations() {
     Map<ConnectorInstance, Integration> newIntegrationsMap =
         factories.stream()
             .flatMap(
