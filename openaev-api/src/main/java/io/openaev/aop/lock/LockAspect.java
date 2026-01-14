@@ -44,8 +44,12 @@ public class LockAspect {
   @Around("@annotation(lockAnnotation)")
   public Object aroundLocked(ProceedingJoinPoint joinPoint, io.openaev.aop.lock.Lock lockAnnotation)
       throws Throwable {
-    // Extract lock key from SpEL expression
-    Object lockKey = extractLockKey(joinPoint, lockAnnotation.key());
+    // If only one stripe, we just use the string as lock object
+    Object lockKey = lockAnnotation.key();
+    if (lockAnnotation.type().stripes() > 1) {
+      // Extract lock key from SpEL expression
+      lockKey = extractLockKey(joinPoint, lockAnnotation.key());
+    }
     LockResourceType lockType = lockAnnotation.type();
 
     if (lockKey == null) {
