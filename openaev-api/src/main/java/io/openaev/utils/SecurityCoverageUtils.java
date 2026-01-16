@@ -29,6 +29,8 @@ import org.apache.coyote.BadRequestException;
  */
 public class SecurityCoverageUtils {
 
+  private static final String DOMAIN_NAME = "Domain-Name";
+
   private SecurityCoverageUtils() {}
 
   /**
@@ -75,7 +77,21 @@ public class SecurityCoverageUtils {
         }
       }
 
-      if (obj.hasProperty(STIX_NAME) && StringUtils.isBlank(refId)) {
+      boolean isIndicator = false;
+      if (ObjectTypes.INDICATOR.toString().equals(stixType)) {
+        if (obj.hasExtension(ExtendedProperties.OPENCTI_EXTENSION_DEFINITION)) {
+          Dictionary extensionObj =
+              (Dictionary) obj.getExtension(ExtendedProperties.OPENCTI_EXTENSION_DEFINITION);
+          List<Dictionary> observables =
+              obj.getExtensionObservables(ExtendedProperties.OPENCTI_EXTENSION_DEFINITION);
+          if (extensionObj.has(CommonProperties.ID.toString()) && hasDomainNameType(observables)) {
+            refId = getDomainNameValue(observables);
+          }
+          isIndicator = true;
+        }
+      }
+
+      if (obj.hasProperty(STIX_NAME) && StringUtils.isBlank(refId) && !isIndicator) {
         refId = (String) obj.getProperty(STIX_NAME).getValue();
       }
 
@@ -103,5 +119,33 @@ public class SecurityCoverageUtils {
     return objectRefs.stream()
         .map(StixRefToExternalRef::getExternalRef)
         .collect(Collectors.toSet());
+  }
+
+  private static boolean hasDomainNameType(List<Dictionary> observables) {
+    if (observables == null || observables.isEmpty()) {
+      return false;
+    }
+
+    return observables.stream()
+        .anyMatch(
+            observable ->
+                DOMAIN_NAME.equals(observable.get(CommonProperties.TYPE.toString()).getValue()));
+  }
+
+  private static String getDomainNameValue(List<Dictionary> observables) {
+    if (!hasDomainNameType(observables)) {
+      return null;
+    }
+
+    Dictionary domainName =
+        observables.stream()
+            .filter(
+                observable ->
+                    DOMAIN_NAME.equals(observable.get(CommonProperties.TYPE.toString()).getValue()))
+            .findFirst()
+            .orElse(null);
+    return domainName != null
+        ? (String) domainName.get(CommonProperties.VALUE.toString()).getValue()
+        : null;
   }
 }

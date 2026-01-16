@@ -1,5 +1,7 @@
 package io.openaev.database.repository;
 
+import static io.openaev.database.model.DnsResolution.DNS_RESOLUTION_TYPE;
+
 import io.openaev.database.model.Inject;
 import io.openaev.database.raw.RawInject;
 import io.openaev.database.raw.RawInjectIndexing;
@@ -424,6 +426,21 @@ public interface InjectRepository
    * @return true if the Inject exists and is an atomic testing, false otherwise
    */
   boolean existsByIdAndScenarioIsNullAndExerciseIsNull(String id);
+
+  @Modifying
+  @Query(
+      value =
+          "DELETE FROM injects i "
+              + "USING injectors_contracts ic, payloads p "
+              + "WHERE i.inject_injector_contract = ic.injector_contract_id "
+              + "AND ic.injector_contract_payload = p.payload_id "
+              + "AND p.payload_type = '"
+              + DNS_RESOLUTION_TYPE
+              + "' "
+              + "AND i.inject_scenario = :scenarioId",
+      nativeQuery = true)
+  void deleteAllInjectsWithDnsResolutionContractsByScenarioId(
+      @Param("scenarioId") String scenarioId);
 
   @Modifying
   @Query(
