@@ -42,6 +42,7 @@ import jakarta.transaction.Transactional;
 import jakarta.validation.constraints.NotBlank;
 import java.time.Instant;
 import java.util.*;
+import java.util.stream.Stream;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
@@ -552,28 +553,76 @@ public class InjectorContractService {
     return injectorContract;
   }
 
+  /**
+   * Computes the count of injector contracts grouped by domain.
+   *
+   * <p>This method applies a specific precedence logic for domain resolution:
+   *
+   * <ul>
+   *   <li>**Priority**: If the contract's payload defines specific domains, these are used for the
+   *       count.
+   *   <li>**Fallback**: If the payload has no domains (or is null), the contract's direct domains
+   *       are used.
+   * </ul>
+   *
+   * <p>It executes two distinct criteria queries and merges the results to generate the final
+   * distribution.
+   *
+   * @param input the search and filtering criteria
+   * @return the list of domain counts derived from effective contract associations
+   */
   public List<InjectorContractDomainCountOutput> getDomainCounts(SearchPaginationInput input) {
     CriteriaBuilder cb = entityManager.getCriteriaBuilder();
-    CriteriaQuery<InjectorContractDomainCountOutput> query =
-        cb.createQuery(InjectorContractDomainCountOutput.class);
-    Root<InjectorContract> root = query.from(InjectorContract.class);
-
-    Join<InjectorContract, Domain> domainJoin = root.join("domains");
 
     Specification<InjectorContract> filterSpec = computeFilterGroupJpa(input.getFilterGroup());
     Specification<InjectorContract> searchSpec = computeSearchJpa(input.getTextSearch());
-    Specification<InjectorContract> finalSpec = Specification.where(filterSpec).and(searchSpec);
+    Specification<InjectorContract> baseSpec = Specification.where(filterSpec).and(searchSpec);
 
-    if (finalSpec != null) {
-      Predicate predicate = finalSpec.toPredicate(root, query, cb);
-      if (predicate != null) {
-        query.where(predicate);
-      }
+    CriteriaQuery<InjectorContractDomainCountOutput> qPayload =
+        cb.createQuery(InjectorContractDomainCountOutput.class);
+    Root<InjectorContract> rootPayload = qPayload.from(InjectorContract.class);
+    Join<InjectorContract, Payload> payloadJoin = rootPayload.join("payload", JoinType.INNER);
+    Join<Payload, Domain> payloadDomainsJoin = payloadJoin.join("domains", JoinType.INNER);
+
+    Predicate payloadPredicate = baseSpec.toPredicate(rootPayload, qPayload, cb);
+    if (payloadPredicate != null) {
+      qPayload.where(payloadPredicate);
     }
 
-    query.multiselect(domainJoin.get("id"), cb.countDistinct(root));
-    query.groupBy(domainJoin.get("id"));
+    qPayload.multiselect(payloadDomainsJoin.get("id"), cb.countDistinct(rootPayload));
+    qPayload.groupBy(payloadDomainsJoin.get("id"));
 
-    return entityManager.createQuery(query).getResultList();
+    List<InjectorContractDomainCountOutput> payloadCounts =
+        entityManager.createQuery(qPayload).getResultList();
+
+    CriteriaQuery<InjectorContractDomainCountOutput> qDirect =
+        cb.createQuery(InjectorContractDomainCountOutput.class);
+    Root<InjectorContract> rootDirect = qDirect.from(InjectorContract.class);
+    Join<InjectorContract, Domain> directDomainsJoin = rootDirect.join("domains", JoinType.INNER);
+    Join<InjectorContract, Payload> pCheckJoin = rootDirect.join("payload", JoinType.LEFT);
+
+    Predicate noPayloadDomains =
+        cb.or(cb.isNull(pCheckJoin), cb.isEmpty(pCheckJoin.get("domains")));
+
+    Predicate directUserPredicate = baseSpec.toPredicate(rootDirect, qDirect, cb);
+    if (directUserPredicate != null) {
+      qDirect.where(cb.and(directUserPredicate, noPayloadDomains));
+    } else {
+      qDirect.where(noPayloadDomains);
+    }
+
+    qDirect.multiselect(directDomainsJoin.get("id"), cb.countDistinct(rootDirect));
+    qDirect.groupBy(directDomainsJoin.get("id"));
+
+    List<InjectorContractDomainCountOutput> directCounts =
+        entityManager.createQuery(qDirect).getResultList();
+
+    Map<String, Long> mergedMap = new HashMap<>();
+    Stream.concat(payloadCounts.stream(), directCounts.stream())
+        .forEach(output -> mergedMap.merge(output.getDomain(), output.getCount(), Long::sum));
+
+    return mergedMap.entrySet().stream()
+        .map(entry -> new InjectorContractDomainCountOutput(entry.getKey(), entry.getValue()))
+        .toList();
   }
 }
