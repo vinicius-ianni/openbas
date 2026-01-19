@@ -34,7 +34,10 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
+
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.apache.commons.collections4.map.PassiveExpiringMap;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -59,7 +62,7 @@ public class UserApi extends RestBehavior {
 
   public static final String USER_URI = "/api/users";
 
-  PassiveExpiringMap<String, String> resetTokenMap = new PassiveExpiringMap<>(1000 * 60 * 10);
+  Map<Object, Object> resetTokenMap = Collections.synchronizedMap(new PassiveExpiringMap<>(1000 * 60 * 10));
   @Resource private SessionManager sessionManager;
   private UserRepository userRepository;
   private UserService userService;
@@ -121,7 +124,7 @@ public class UserApi extends RestBehavior {
     Optional<User> optionalUser = userRepository.findByEmailIgnoreCase(input.getLogin());
     if (optionalUser.isPresent()) {
       User user = optionalUser.get();
-      String resetToken = RandomStringUtils.randomNumeric(8);
+      String resetToken = RandomStringUtils.randomAlphanumeric(64, 128);
       String username = user.getName() != null ? user.getName() : user.getEmail();
       if ("fr".equals(input.getLang())) {
         String subject = resetToken + " est votre code de récupération de compte OpenAEV";
@@ -145,7 +148,7 @@ public class UserApi extends RestBehavior {
         mailingService.sendEmail(subject, body, List.of(user));
       }
       // Store in memory reset token
-      resetTokenMap.put(resetToken, user.getId());
+      resetTokenMap.put(user.getId(), resetToken);
       return ResponseEntity.ok().build();
     }
     return ResponseEntity.badRequest().build();
@@ -165,7 +168,7 @@ public class UserApi extends RestBehavior {
       @PathVariable @Schema(description = "Token generated during reset") String token,
       @Valid @RequestBody ChangePasswordInput input)
       throws InputValidationException {
-    String userId = resetTokenMap.get(token);
+    String userId = (String) resetTokenMap.get(token);
     if (userId != null) {
       String password = input.getPassword();
       String passwordValidation = input.getPasswordValidation();
