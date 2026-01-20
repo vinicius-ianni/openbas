@@ -1,8 +1,8 @@
 package io.openaev.rest;
 
 import static io.openaev.rest.asset.security_platforms.SecurityPlatformApi.SECURITY_PLATFORM_URI;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static io.openaev.utils.JsonTestUtils.asJsonString;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.TestInstance.Lifecycle.PER_CLASS;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
