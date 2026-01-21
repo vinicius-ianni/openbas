@@ -45,6 +45,7 @@ import { type Error as APIError, notifyErrorHandler } from '../../../../utils/er
 import useEntityToggle from '../../../../utils/hooks/useEntityToggle';
 import computeAttackPatterns from '../../../../utils/injector_contract/InjectorContractUtils';
 import { isNotEmptyField } from '../../../../utils/utils';
+import { buildOrderedDomains } from '../../workspaces/custom_dashboards/widgets/viz/domains/SecurityDomainsWidgetUtils';
 import { InjectContext } from '../Context';
 import buildIconBarElements from '../domains/DomainsIcons';
 import IconBar from '../domains/IconBar';
@@ -454,6 +455,8 @@ const CreateInject: FunctionComponent<Props> = ({
     [domainOptions, selectedDomains, domainCounts],
   );
 
+  const iconBarOrderedDomains = useMemo(() => buildOrderedDomains(iconBarElements), [iconBarElements]);
+
   return (
     <Drawer
       open={open}
@@ -463,7 +466,7 @@ const CreateInject: FunctionComponent<Props> = ({
       disableEnforceFocus
     >
       <>
-        <IconBar elements={iconBarElements} />
+        <IconBar elements={iconBarOrderedDomains} />
         <div
           style={{
             display: 'grid',
