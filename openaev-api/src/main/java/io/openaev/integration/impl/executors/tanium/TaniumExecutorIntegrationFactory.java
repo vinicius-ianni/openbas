@@ -1,5 +1,7 @@
 package io.openaev.integration.impl.executors.tanium;
 
+import static io.openaev.integration.impl.executors.tanium.TaniumExecutorIntegration.TANIUM_EXECUTOR_TYPE;
+
 import io.openaev.authorisation.HttpClientFactory;
 import io.openaev.config.cache.LicenseCacheManager;
 import io.openaev.database.model.CatalogConnector;
@@ -31,6 +33,8 @@ import org.springframework.stereotype.Service;
 public class TaniumExecutorIntegrationFactory extends IntegrationFactory {
   private final ExecutorService executorService;
   private final ComponentRequestEngine componentRequestEngine;
+  private final ConnectorInstanceService connectorInstanceService;
+  private final CatalogConnectorService catalogConnectorService;
   private final TaniumExecutorConfigurationMigration taniumExecutorConfigurationMigration;
 
   private final AgentService agentService;
@@ -60,6 +64,8 @@ public class TaniumExecutorIntegrationFactory extends IntegrationFactory {
     super(connectorInstanceService, catalogConnectorService, httpClientFactory);
     this.executorService = executorService;
     this.componentRequestEngine = componentRequestEngine;
+    this.connectorInstanceService = connectorInstanceService;
+    this.catalogConnectorService = catalogConnectorService;
     this.taniumExecutorConfigurationMigration = taniumExecutorConfigurationMigration;
     this.agentService = agentService;
     this.endpointService = endpointService;
@@ -83,14 +89,14 @@ public class TaniumExecutorIntegrationFactory extends IntegrationFactory {
 
   @Override
   protected void insertCatalogEntry() throws Exception {
-    String logoFilename = "%s-logo.png".formatted(getClassName());
+    String logoFilename = "%s-logo.png".formatted(TANIUM_EXECUTOR_TYPE);
     fileService.uploadStream(
         FileService.CONNECTORS_LOGO_PATH,
         logoFilename,
         getClass().getResourceAsStream("/img/icon-tanium.png"));
     CatalogConnector connector = new CatalogConnector();
     connector.setTitle("Tanium Executor");
-    connector.setSlug(getClassName());
+    connector.setSlug(TANIUM_EXECUTOR_TYPE);
     connector.setLogoUrl(logoFilename);
     connector.setDescription(
         """

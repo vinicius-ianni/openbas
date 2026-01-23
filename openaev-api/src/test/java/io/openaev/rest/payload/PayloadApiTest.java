@@ -23,6 +23,8 @@ import io.openaev.database.repository.DocumentRepository;
 import io.openaev.database.repository.InjectorContractRepository;
 import io.openaev.database.repository.PayloadRepository;
 import io.openaev.ee.Ee;
+import io.openaev.integration.Manager;
+import io.openaev.integration.impl.injectors.openaev.OpenaevInjectorIntegrationFactory;
 import io.openaev.rest.collector.form.CollectorCreateInput;
 import io.openaev.rest.payload.form.*;
 import io.openaev.utils.fixtures.CollectorFixture;
@@ -55,6 +57,7 @@ class PayloadApiTest extends IntegrationTest {
   @Autowired private InjectorContractRepository injectorContractRepository;
   @Autowired private PayloadRepository payloadRepository;
   @Autowired private CollectorRepository collectorRepository;
+  @Autowired private OpenaevInjectorIntegrationFactory openaevInjectorIntegrationFactory;
 
   @Autowired private CollectorComposer collectorComposer;
   @Autowired private DomainComposer domainComposer;
@@ -247,6 +250,7 @@ class PayloadApiTest extends IntegrationTest {
     @Test
     @DisplayName("Create Payload with targeted asset")
     void given_targetedAssetArgument_should_create_payload_with_targeted_asset() throws Exception {
+      new Manager(List.of(openaevInjectorIntegrationFactory)).monitorIntegrations();
 
       Domain domain = domainComposer.forDomain(DomainFixture.getRandomDomain()).persist().get();
       PayloadCreateInput input =

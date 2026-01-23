@@ -1,5 +1,7 @@
 package io.openaev.integration.impl.executors.crowdstrike;
 
+import static io.openaev.integration.impl.executors.crowdstrike.CrowdStrikeExecutorIntegration.CROWDSTRIKE_EXECUTOR_TYPE;
+
 import io.openaev.authorisation.HttpClientFactory;
 import io.openaev.config.cache.LicenseCacheManager;
 import io.openaev.database.model.CatalogConnector;
@@ -37,6 +39,8 @@ public class CrowdStrikeExecutorIntegrationFactory extends IntegrationFactory {
   private final LicenseCacheManager licenseCacheManager;
   private final ComponentRequestEngine componentRequestEngine;
   private final ThreadPoolTaskScheduler taskScheduler;
+  private final CatalogConnectorService catalogConnectorService;
+  private final ConnectorInstanceService connectorInstanceService;
   private final CrowdStrikeExecutorConfigurationMigration crowdStrikeExecutorConfigurationMigration;
   private final FileService fileService;
   private final BaseIntegrationConfigurationBuilder baseIntegrationConfigurationBuilder;
@@ -65,6 +69,8 @@ public class CrowdStrikeExecutorIntegrationFactory extends IntegrationFactory {
     this.licenseCacheManager = licenseCacheManager;
     this.componentRequestEngine = componentRequestEngine;
     this.taskScheduler = taskScheduler;
+    this.catalogConnectorService = catalogConnectorService;
+    this.connectorInstanceService = connectorInstanceService;
     this.crowdStrikeExecutorConfigurationMigration = crowdStrikeExecutorConfigurationMigration;
     this.fileService = fileService;
     this.baseIntegrationConfigurationBuilder = baseIntegrationConfigurationBuilder;
@@ -82,14 +88,14 @@ public class CrowdStrikeExecutorIntegrationFactory extends IntegrationFactory {
 
   @Override
   protected void insertCatalogEntry() throws Exception {
-    String logoFilename = "%s-logo.png".formatted(getClassName());
+    String logoFilename = "%s-logo.png".formatted(CROWDSTRIKE_EXECUTOR_TYPE);
     fileService.uploadStream(
         FileService.CONNECTORS_LOGO_PATH,
         logoFilename,
         getClass().getResourceAsStream("/img/icon-crowdstrike.png"));
     CatalogConnector connector = new CatalogConnector();
     connector.setTitle("CrowdStrike Executor");
-    connector.setSlug(getClassName());
+    connector.setSlug(CROWDSTRIKE_EXECUTOR_TYPE);
     connector.setLogoUrl(logoFilename);
     connector.setDescription(
         """

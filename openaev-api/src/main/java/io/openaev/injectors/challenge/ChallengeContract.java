@@ -40,11 +40,6 @@ public class ChallengeContract extends Contractor {
   public static final String TYPE = "openaev_challenge";
 
   @Override
-  public boolean isExpose() {
-    return true;
-  }
-
-  @Override
   public String getType() {
     return TYPE;
   }
@@ -52,12 +47,7 @@ public class ChallengeContract extends Contractor {
   @Override
   public ContractConfig getConfig() {
     return new ContractConfig(
-        TYPE,
-        Map.of(en, "Challenge", fr, "Challenge"),
-        "#e91e63",
-        "#e91e63",
-        "/img/challenge.png",
-        isExpose());
+        TYPE, Map.of(en, "Challenge", fr, "Challenge"), "#e91e63", "#e91e63", "/img/challenge.png");
   }
 
   @Override

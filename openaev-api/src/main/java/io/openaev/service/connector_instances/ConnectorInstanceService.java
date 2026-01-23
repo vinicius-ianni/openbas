@@ -10,6 +10,7 @@ import io.openaev.database.model.*;
 import io.openaev.database.repository.ConnectorInstanceConfigurationRepository;
 import io.openaev.database.repository.ConnectorInstanceRepository;
 import io.openaev.database.repository.TokenRepository;
+import io.openaev.integration.ComponentRequest;
 import io.openaev.integration.Manager;
 import io.openaev.integration.ManagerFactory;
 import io.openaev.rest.connector_instance.dto.ConnectorInstanceHealthInput;
@@ -24,6 +25,7 @@ import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service
@@ -104,6 +106,29 @@ public class ConnectorInstanceService {
     return instancesInMemory;
   }
 
+  @Transactional(readOnly = true)
+  public boolean hasStartedConnectorInstanceForInjector(final String injectorId) throws Exception {
+    try {
+      ConnectorInstanceConfigurationRepository.ConnectorIdsFomDatabase persistedId =
+          this.connectorInstanceConfigurationRepository.findInstanceAndCatalogIdsByKeyValue(
+              ConnectorType.INJECTOR.getIdKeyName(), injectorId);
+      if (persistedId != null) {
+        ConnectorInstance ci =
+            this.connectorInstanceRepository
+                .findById(persistedId.getConnectorInstanceId())
+                .orElseThrow(); // clear error
+        return ci.getCurrentStatus().equals(ConnectorInstance.CURRENT_STATUS_TYPE.started);
+      } else {
+        managerFactory
+            .getManager()
+            .request(new ComponentRequest(injectorId), io.openaev.executors.Injector.class);
+        return true;
+      }
+    } catch (Exception e) {
+      throw new IllegalArgumentException("Failed to get a connector instances", e);
+    }
+  }
+
   /**
    * Retrieves all connector instances.
    *
@@ -147,6 +172,21 @@ public class ConnectorInstanceService {
   public Set<ConnectorInstanceConfiguration> getConnectorInstanceConfigurations(String instanceId) {
     ConnectorInstance connectorInstance = connectorInstanceById(instanceId);
     return connectorInstance.getConfigurations();
+  }
+
+  /**
+   * Retrieve the value of a specific connector instance configuration by instance ID and key.
+   *
+   * @param instanceId the connector instance ID to search for the configuration
+   * @param key the configuration key to retrieve
+   * @return the configuration value as a String
+   */
+  public String getConnectorInstanceConfigurationsByIdAndKey(String instanceId, String key) {
+    return this.getConnectorInstanceConfigurations(instanceId).stream()
+        .filter(c -> key.equals(c.getKey()))
+        .findFirst()
+        .map(c -> c.getValue().asText())
+        .orElse(null);
   }
 
   /**

@@ -10,6 +10,7 @@ import io.openaev.database.model.Inject;
 import io.openaev.database.model.InjectExpectation;
 import io.openaev.database.model.Injection;
 import io.openaev.execution.ExecutableInject;
+import io.openaev.executors.InjectorContext;
 import io.openaev.injectors.manual.ManualExecutor;
 import io.openaev.injectors.manual.model.ManualContent;
 import io.openaev.model.expectation.ManualExpectation;
@@ -18,13 +19,11 @@ import io.openaev.service.InjectExpectationService;
 import io.openaev.utilstest.RabbitMQTestListener;
 import java.time.Instant;
 import java.util.List;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.TestExecutionListeners;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @SpringBootTest
 @TestExecutionListeners(
@@ -35,13 +34,7 @@ public class ManualExecutorTest extends IntegrationTest {
   @Mock InjectExpectationService injectExpectationService;
 
   @Mock ObjectMapper mapper;
-
-  @InjectMocks private ManualExecutor manualExecutor;
-
-  @BeforeEach
-  void setUp() {
-    ReflectionTestUtils.setField(manualExecutor, "mapper", mapper);
-  }
+  @InjectMocks private InjectorContext injectorContext;
 
   @Test
   void process() throws Exception {
@@ -66,7 +59,8 @@ public class ManualExecutorTest extends IntegrationTest {
     when(executableInject.getInjection()).thenReturn(injection);
     when(mapper.treeToValue(content, ManualContent.class)).thenReturn(manualContent);
 
-    this.manualExecutor.process(execution, executableInject);
+    ManualExecutor executor = new ManualExecutor(injectorContext, injectExpectationService);
+    executor.process(execution, executableInject);
 
     // verify that the expectations are saved
     verify(injectExpectationService)

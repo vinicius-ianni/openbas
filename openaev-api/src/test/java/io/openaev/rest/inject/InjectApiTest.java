@@ -30,6 +30,9 @@ import io.openaev.execution.ExecutableInject;
 import io.openaev.executors.Executor;
 import io.openaev.injector_contract.ContractTargetedProperty;
 import io.openaev.injector_contract.fields.ContractFieldType;
+import io.openaev.integration.Manager;
+import io.openaev.integration.impl.injectors.email.EmailInjectorIntegrationFactory;
+import io.openaev.integration.impl.injectors.openaev.OpenaevInjectorIntegrationFactory;
 import io.openaev.rest.atomic_testing.form.ExecutionTraceOutput;
 import io.openaev.rest.atomic_testing.form.InjectStatusOutput;
 import io.openaev.rest.exception.BadRequestException;
@@ -127,9 +130,16 @@ class InjectApiTest extends IntegrationTest {
 
   @Autowired private InjectTestHelper injectTestHelper;
   @Autowired private InjectExpectationComposer injectExpectationComposer;
+  @Autowired private InjectorContractFixture injectorContractFixture;
+  @Autowired private InjectorFixture injectorFixture;
+  @Autowired private EmailInjectorIntegrationFactory emailInjectorIntegrationFactory;
+  @Autowired private OpenaevInjectorIntegrationFactory openaevInjectorIntegrationFactory;
 
   @BeforeEach
-  void beforeEach() {
+  void beforeEach() throws Exception {
+    new Manager(List.of(emailInjectorIntegrationFactory, openaevInjectorIntegrationFactory))
+        .monitorIntegrations();
+
     Scenario scenario = new Scenario();
     scenario.setName("Scenario name");
     scenario.setFrom("test@test.com");
@@ -177,8 +187,9 @@ class InjectApiTest extends IntegrationTest {
     injectForScenario1.setCreatedAt(Instant.now());
     injectForScenario1.setUpdatedAt(Instant.now());
     injectForScenario1.setDependsDuration(5L);
+
     injectForScenario1.setInjectorContract(
-        injectorContractRepository.findById(EMAIL_DEFAULT).orElseThrow());
+        injectorContractFixture.getWellKnownSingleEmailContract());
     injectForScenario1.setScenario(SCENARIO);
     Inject createdInject = injectRepository.save(injectForScenario1);
 
@@ -271,8 +282,7 @@ class InjectApiTest extends IntegrationTest {
     InjectInput injectInput = new InjectInput();
     injectInput.setTitle("Test inject");
     injectInput.setDependsDuration(0L);
-    Inject inject =
-        injectInput.toInject(injectorContractRepository.findById(EMAIL_DEFAULT).orElseThrow());
+    Inject inject = injectInput.toInject(injectorContractFixture.getWellKnownSingleEmailContract());
     Inject savedInject = injectRepository.save(inject);
 
     Inject injectToUpdate = injectRepository.findById(savedInject.getId()).orElseThrow();
@@ -303,8 +313,7 @@ class InjectApiTest extends IntegrationTest {
   @WithMockUser(isAdmin = true)
   void executeEmailInjectForExerciseTest() throws Exception {
     // -- PREPARE --
-    InjectorContract injectorContract =
-        this.injectorContractRepository.findById(EMAIL_DEFAULT).orElseThrow();
+    InjectorContract injectorContract = injectorContractFixture.getWellKnownSingleEmailContract();
     Inject inject = getInjectForEmailContract(injectorContract);
     User user = userRepository.findById(currentUser().getId()).orElseThrow();
     DirectInjectInput input = new DirectInjectInput();
@@ -364,8 +373,7 @@ class InjectApiTest extends IntegrationTest {
   @WithMockUser(isAdmin = true)
   void executeEmailInjectForExerciseWithNoTeam() throws Exception {
     // -- PREPARE --
-    InjectorContract injectorContract =
-        this.injectorContractRepository.findById(EMAIL_DEFAULT).orElseThrow();
+    InjectorContract injectorContract = injectorContractFixture.getWellKnownSingleEmailContract();
     Inject inject = getInjectForEmailContract(injectorContract);
 
     DirectInjectInput input = new DirectInjectInput();
@@ -403,8 +411,7 @@ class InjectApiTest extends IntegrationTest {
   @WithMockUser(isAdmin = true)
   void executeEmailInjectForExerciseWithNoContentTest() throws Exception {
     // -- PREPARE --
-    InjectorContract injectorContract =
-        this.injectorContractRepository.findById(EMAIL_DEFAULT).orElseThrow();
+    InjectorContract injectorContract = injectorContractFixture.getWellKnownSingleEmailContract();
     Inject inject = getInjectForEmailContract(injectorContract);
 
     DirectInjectInput input = new DirectInjectInput();
@@ -1215,7 +1222,8 @@ class InjectApiTest extends IntegrationTest {
         Payload payloadSaved = injectTestHelper.forceSavePayload(payloadCommand);
 
         // Create injectorContract with targeted asset field
-        Injector injector = injectorRepository.findByType("openaev_implant").orElseThrow();
+        Injector injector = InjectorFixture.createDefaultPayloadInjector();
+        injectTestHelper.forceSaveInjector(injector);
         InjectorContract injectorContract =
             InjectorContractFixture.createPayloadInjectorContractWithFieldsContent(
                 injector, payloadSaved, List.of());

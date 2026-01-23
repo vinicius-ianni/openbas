@@ -13,9 +13,9 @@ import io.openaev.integration.ComponentRequestEngine;
 import io.openaev.integration.Integration;
 import io.openaev.integration.QualifiedComponent;
 import io.openaev.integration.configuration.BaseIntegrationConfigurationBuilder;
-import io.openaev.integrations.InjectorService;
 import io.openaev.service.AgentService;
 import io.openaev.service.EndpointService;
+import io.openaev.service.InjectorService;
 import io.openaev.service.PlatformSettingsService;
 import io.openaev.service.connector_instances.ConnectorInstanceService;
 import java.lang.reflect.InvocationTargetException;
@@ -46,6 +46,8 @@ public class CalderaExecutorIntegration extends Integration {
   private final PlatformSettingsService platformSettingsService;
   private final ExecutorService executorService;
   private final ThreadPoolTaskScheduler taskScheduler;
+  private final ConnectorInstanceService connectorInstanceService;
+  private final ConnectorInstance connectorInstance;
   private final HttpClientFactory httpClientFactory;
   private final BaseIntegrationConfigurationBuilder baseIntegrationConfigurationBuilder;
 
@@ -70,6 +72,8 @@ public class CalderaExecutorIntegration extends Integration {
     this.injectorService = injectorService;
     this.taskScheduler = taskScheduler;
     this.executorService = executorService;
+    this.connectorInstanceService = connectorInstanceService;
+    this.connectorInstance = connectorInstance;
     this.httpClientFactory = httpClientFactory;
     this.baseIntegrationConfigurationBuilder = baseIntegrationConfigurationBuilder;
 
@@ -85,9 +89,13 @@ public class CalderaExecutorIntegration extends Integration {
 
   @Override
   protected void innerStart() throws Exception {
+    String executorId =
+        connectorInstanceService.getConnectorInstanceConfigurationsByIdAndKey(
+            connectorInstance.getId(), ConnectorType.EXECUTOR.getIdKeyName());
+
     Executor executor =
         executorService.register(
-            config.getId(),
+            executorId,
             CALDERA_EXECUTOR_TYPE,
             CALDERA_EXECUTOR_NAME,
             null,
