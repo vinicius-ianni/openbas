@@ -12,6 +12,7 @@ import {
   type Widget,
 } from '../../../../../utils/api-types';
 import { CustomDashboardContext, type ParameterOption } from '../CustomDashboardContext';
+import { determinePercentage } from './viz/domains/SecurityDomainsWidgetUtils';
 import WidgetTitle from './WidgetTitle';
 import { type WidgetVizData, WidgetVizDataType } from './WidgetUtils';
 import WidgetViz from './WidgetViz';
@@ -43,11 +44,9 @@ const WidgetWrapper = ({
   readOnly,
 }: WidgetWrapperProps) => {
   const theme = useTheme();
-
   const [vizData, setVizData] = useState<WidgetVizData>({ type: WidgetVizDataType.NONE });
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string>('');
-
   const { customDashboardParameters, fetchCount, fetchSeries, fetchEntities, fetchAttackPaths, fetchAverage } = useContext(CustomDashboardContext);
 
   // Use ref to track if component is mounted
@@ -123,7 +122,7 @@ const WidgetWrapper = ({
             case WidgetVizDataType.AVERAGE:
               setVizData({
                 type: WidgetVizDataType.AVERAGE,
-                data: response.data as EsAvgs,
+                data: determinePercentage(response.data as EsAvgs),
               });
               break;
             default: break;
