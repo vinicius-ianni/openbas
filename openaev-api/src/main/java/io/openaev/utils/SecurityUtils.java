@@ -1,15 +1,17 @@
 package io.openaev.utils;
 
 import io.openaev.rest.exception.BadRequestException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 import org.apache.commons.io.FilenameUtils;
 import org.springframework.web.multipart.MultipartFile;
 
-public class FileSecurityUtils {
+public class SecurityUtils {
 
-  private FileSecurityUtils() {
+  private SecurityUtils() {
     // Utility class
   }
 
@@ -51,5 +53,40 @@ public class FileSecurityUtils {
     }
 
     return resolvedPath;
+  }
+
+  /**
+   * Validates that the resolved uri does not escape the base directory.
+   *
+   * @param ressourcePath to test
+   * @param filename to test
+   * @return constructed and validated URI
+   * @throws SecurityException if an error is detected
+   */
+  public static URI validateJFrogUri(String ressourcePath, String filename)
+      throws SecurityException {
+    if (StringUtils.isBlank(ressourcePath) || StringUtils.isBlank(filename)) {
+      throw new SecurityException("Invalid URL format");
+    }
+
+    String stringUri = "https://filigran.jfrog.io/artifactory" + ressourcePath + filename;
+    // Verify path traversals
+    if (stringUri.contains("..")) {
+      throw new SecurityException("Path traversal detected in URL");
+    }
+
+    try {
+      URI uri = new URI(stringUri).normalize();
+      String path = uri.getPath();
+
+      // Additional checks
+      if (path != null && (path.contains("\\") || path.contains("%2e%2e"))) {
+        throw new SecurityException("Suspicious characters in URL path");
+      }
+
+      return uri;
+    } catch (URISyntaxException e) {
+      throw new SecurityException("Invalid URL format", e);
+    }
   }
 }
